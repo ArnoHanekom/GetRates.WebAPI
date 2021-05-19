@@ -1,0 +1,163 @@
+﻿@page "/{handler?}/{currency?}"
+@using System.Reflection
+@using System.ComponentModel.DataAnnotations
+@using GetRates.DAL.Models
+
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="row">
+    <div class="col-sm-12 jumbotron jumbotron-fluid p-3 mb-0">
+        <h4>Welcome to Crypto feed</h4>
+    </div>
+</div>
+<hr class="my-2" />
+<div class="row">
+    <div class="col-sm-12">
+        <div class="text-center">
+            <form method="GET" asp-page-handler="externallistings">
+                <p>
+                    Pull 100 listings with the latest changes and
+                    update your data.
+                </p>                
+                <p>
+                    <select class="form-control w-50" name="Currency" asp-for="currency" asp-items="Model.currencyOptions"></select>
+                </p>
+                <p>
+                    <button type="submit" class="btn btn-sm btn-success pull-feed">Pull Provider Feed</button>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="collapse fetchresults">@Model.DbList.Count</div>
+@{
+    if (Model.DbList.Count > 0)
+    {
+        await BuildCryptoList();
+    }
+
+    async Task BuildCryptoList()
+    {
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th class="collapse">
+                        <span>ID</span>
+                    </th>
+                    <th>
+                        <span>Crypto</span>
+                    </th>
+                    <th>
+                        &nbsp;
+                    </th>
+                    <th>
+                        &nbsp;
+                    </th>
+                    <th>
+                        &nbsp;
+                    </th>
+                    <th>
+                        &nbsp;
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    for (int i = 0; i < Model.DbList.Count; i++)
+                    {
+                        <tr>
+                            <td class="collapse"><span>@Model.DbList[i].ApiRefId</span></td>
+                            <td class="w-50">
+                                <span>@Model.DbList[i].Symbol - @Model.DbList[i].Name</span>
+                            </td>
+                            <td class="w-50" colspan="3" id="details-@Model.DbList[i].ApiRefId">
+                                @{
+                                    if (Model.DbList[i].Quote.Count > 0)
+                                    {
+                                        await BuildQuoteView(Model.DbList, i);
+                                    }
+                                    else
+                                    {
+                                        @Html.Raw("&nbsp;");
+                                    }
+                                }
+                            </td>
+                            <td>
+                                &nbsp;
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+
+    async Task BuildQuoteView(List<Crypto> dbList, int idx)
+    {
+        <div class="row">
+            <div id="q-header-@dbList[idx].ApiRefId" class="show-details col-sm-12 btn btn-dark nav-link pointer" data-toggle="collapse" data-target="#d-quote-@dbList[idx].ApiRefId">
+                Show Details
+            </div>
+        </div>
+        <div id="d-quote-@dbList[idx].ApiRefId" data-parent="#details-@dbList[idx].ApiRefId" aria-labelledby="#q-header-@dbList[idx].ApiRefId"
+             class="row collapse">
+            <div class="col-sm-12">
+                <div class="accordion" id="qa-@dbList[idx].ApiRefId">
+                    @{
+                        for (int i = 0; i < dbList[idx].Quote.Count; i++)
+                        {
+                            <div class="card">
+                                <div class="card-header p-1">
+                                    <h2 class="mb-0" id="qh-@dbList[idx].ApiRefId-@dbList[idx].Quote[i].QuoteCurrency">
+                                        <button type="button" class="show-quote btn btn-link nav-link w-100 text-left collapsed"
+                                                data-toggle="collapse" data-target="#qc-@dbList[idx].ApiRefId-@dbList[idx].Quote[i].QuoteCurrency">
+                                            <i class="fa fa-plus"></i>&nbsp;@dbList[idx].Quote[i].QuoteCurrency
+                                        </button>
+                                    </h2>
+                                </div>
+                                <div id="qc-@dbList[idx].ApiRefId-@dbList[idx].Quote[i].QuoteCurrency"
+                                     class="collapse" data-parent="#qa-@dbList[idx].ApiRefId"
+                                     aria-labelledby="#qh-@dbList[idx].ApiRefId-@dbList[idx].Quote[i].QuoteCurrency">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <span>Price</span>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <span>@dbList[idx].Quote[i].Price</span>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <span>Volume 24h</span>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <span>@dbList[idx].Quote[i].Volume_24h</span>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <span>Last Updated</span>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                @{
+                                                    DateTime dt = DateTime.Parse(dbList[idx].Quote[i].Last_Updated.ToString());
+                                                }
+                                                <span>
+                                                    @dt.ToString("yyyy MMM dd HH:mm:ss")
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
